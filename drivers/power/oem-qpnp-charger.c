@@ -334,9 +334,13 @@ static int fake_chgvol = 0;
 #endif
 /* OPPO 2013-06-08 wangjc Add end */
 
+#define CONFIG_BATTERY_BQ27541 1
+
 #ifdef CONFIG_BATTERY_BQ27541
 static struct qpnp_battery_gauge *qpnp_batt_gauge = NULL;
 #endif /*CONFIG_BATTERY_BQ27541*/
+
+#define CONFIG_BQ24196_CHARGER 1
 
 #ifdef CONFIG_BQ24196_CHARGER
 static struct qpnp_external_charger *qpnp_ext_charger = NULL;
