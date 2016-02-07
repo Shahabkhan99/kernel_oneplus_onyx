@@ -31,7 +31,7 @@
 	};
 
 /*
-	¡qcom,mdss_dsi@fd922800 {
+	ï¿½qcom,mdss_dsi@fd922800 {
 		qcom,dsi-pref-prim-pan = <&dsi_tosh_720_vid>;
 	};
 */
@@ -531,6 +531,7 @@ tri_state_key {
 	qcom,pad-drv-off = <0x0 0x0 0x0>; /* 2mA, 2mA, 2mA */
 
 	qcom,nonremovable;
+	qcom,wakeup-on-idle;
 	status = "ok";
 };
 
