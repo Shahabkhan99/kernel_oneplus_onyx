@@ -31,8 +31,14 @@
 
 #define DEFAULT_SAMPLING_MS 3000
 
-/* Sysfs attr group must be manually updated in order to change this */
+/* Max possible is currently 100 (0-99 => two digits) */
 #define NR_THERMAL_ZONES 9
+
+struct thermal_zone_sysfs {
+	struct device_attribute dev_attr[NR_THERMAL_ZONES];
+	struct attribute *attr[NR_THERMAL_ZONES + 1];
+	struct attribute_group attr_group;
+};
 
 #define UNTHROTTLE_ZONE (-1)
 
@@ -62,6 +68,7 @@ struct thermal_policy {
 	struct throttle_policy throttle;
 	struct thermal_zone zone[NR_THERMAL_ZONES];
 	struct workqueue_struct *wq;
+	struct thermal_zone_sysfs zfs;
 };
 
 static struct thermal_policy *t_policy_g;
@@ -346,29 +353,11 @@ static ssize_t user_maxfreq_read(struct device *dev,
 static DEVICE_ATTR(enabled, 0644, enabled_read, enabled_write);
 static DEVICE_ATTR(sampling_ms, 0644, sampling_ms_read, sampling_ms_write);
 static DEVICE_ATTR(user_maxfreq, 0644, user_maxfreq_read, user_maxfreq_write);
-static DEVICE_ATTR(zone0, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone1, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone2, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone3, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone4, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone5, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone6, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone7, 0644, thermal_zone_read, thermal_zone_write);
-static DEVICE_ATTR(zone8, 0644, thermal_zone_read, thermal_zone_write);
 
 static struct attribute *msm_thermal_attr[] = {
 	&dev_attr_enabled.attr,
 	&dev_attr_sampling_ms.attr,
 	&dev_attr_user_maxfreq.attr,
-	&dev_attr_zone0.attr,
-	&dev_attr_zone1.attr,
-	&dev_attr_zone2.attr,
-	&dev_attr_zone3.attr,
-	&dev_attr_zone4.attr,
-	&dev_attr_zone5.attr,
-	&dev_attr_zone6.attr,
-	&dev_attr_zone7.attr,
-	&dev_attr_zone8.attr,
 	NULL
 };
 
@@ -376,7 +365,39 @@ static struct attribute_group msm_thermal_attr_group = {
 	.attrs = msm_thermal_attr,
 };
 
-static int sysfs_thermal_init(void)
+static int sysfs_zone_attr_init(struct thermal_policy *t)
+{
+	char zone_name[7]; /* "zone##" */
+	int i;
+
+	/*
+	 * All thermal zones use the same read/write functions, so initialize
+	 * all of the zones dynamically using a loop.
+	 */
+	for (i = 0; i < NR_THERMAL_ZONES; i++) {
+		snprintf(zone_name, sizeof(zone_name), "zone%d", i);
+		t->zfs.dev_attr[i].attr.name = kstrdup(zone_name, GFP_KERNEL);
+		if (!t->zfs.dev_attr[i].attr.name)
+			goto free_name;
+		t->zfs.dev_attr[i].attr.mode = VERIFY_OCTAL_PERMISSIONS(0644);
+		t->zfs.dev_attr[i].show = thermal_zone_read;
+		t->zfs.dev_attr[i].store = thermal_zone_write;
+		t->zfs.attr[i] = &t->zfs.dev_attr[i].attr;
+	}
+
+	/* Last element in the attribute array must be NULL */
+	t->zfs.attr[NR_THERMAL_ZONES] = NULL;
+	t->zfs.attr_group.attrs = t->zfs.attr;
+
+	return 0;
+
+free_name:
+	for (i--; i >= 0; i--)
+		kfree(t->zfs.dev_attr[i].attr.name);
+	return -ENOMEM;
+}
+
+static int sysfs_thermal_init(struct thermal_policy *t)
 {
 	struct kobject *kobj;
 	int ret;
@@ -389,10 +410,26 @@ static int sysfs_thermal_init(void)
 
 	ret = sysfs_create_group(kobj, &msm_thermal_attr_group);
 	if (ret) {
-		pr_err("Failed to create sysfs interface\n");
-		kobject_put(kobj);
+		pr_err("Failed to create sysfs interface, ret=%d\n", ret);
+		goto put_kobj;
 	}
 
+	ret = sysfs_zone_attr_init(t);
+	if (ret) {
+		pr_err("Failed to init thermal zone attrs, ret=%d\n", ret);
+		goto put_kobj;
+	}
+
+	ret = sysfs_create_group(kobj, &t->zfs.attr_group);
+	if (ret) {
+		pr_err("Failed to create thermal zone sysfs, ret=%d\n", ret);
+		goto put_kobj;
+	}
+
+	return 0;
+
+put_kobj:
+	kobject_put(kobj);
 	return ret;
 }
 
@@ -466,7 +503,7 @@ static int msm_thermal_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&t->dwork, msm_thermal_main);
 
-	ret = sysfs_thermal_init();
+	ret = sysfs_thermal_init(t);
 	if (ret)
 		goto free_mem;
 
