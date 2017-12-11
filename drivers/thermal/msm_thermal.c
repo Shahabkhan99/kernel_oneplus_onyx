@@ -24,7 +24,7 @@
 #include <linux/of.h>
 #include <linux/ratelimit.h>
 
-unsigned int temp_threshold = 38;
+unsigned int temp_threshold = 48;
 module_param(temp_threshold, int, 0644);
 
 static struct thermal_info {
@@ -42,15 +42,15 @@ static struct thermal_info {
 };
 
 enum thermal_freqs {
-        FREQ_NOTE_7             = 729600,
-        FREQ_HELL               = 960000,
-        FREQ_BBQ                = 1036800,
-        FREQ_MICROWAVE          = 1190400,
-        FREQ_VERY_HOT           = 1267200,
-        FREQ_HOT                = 1497600,
-        FREQ_WARM               = 1574400,
-        FREQ_ZIPPY              = 1728000,
-        FREQ_MAX                = 1958400,
+        FREQ_NOTE_7             = 960000,
+        FREQ_HELL               = 1036800,
+        FREQ_BBQ                = 1190400,
+        FREQ_MICROWAVE          = 1267200,
+        FREQ_VERY_HOT           = 1497600,
+        FREQ_HOT                = 1574400,
+        FREQ_WARM               = 1728000,
+        FREQ_ZIPPY              = 1958400,
+        FREQ_MAX                = 2265600,
 };
 
 enum threshold_levels {
