@@ -1606,11 +1606,7 @@ composite_suspend(struct usb_gadget *gadget)
 
 	cdev->suspended = 1;
 
-#ifndef CONFIG_VENDOR_EDIT
-// delete by xcb
 	usb_gadget_vbus_draw(gadget, 2);
-#endif
-
 }
 
 static void
