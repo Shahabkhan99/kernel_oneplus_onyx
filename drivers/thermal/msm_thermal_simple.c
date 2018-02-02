@@ -1,7 +1,7 @@
 /*
  * drivers/thermal/msm_thermal_simple.c
  *
- * Copyright (C) 2014-2016, Sultanxda <sultanxda@gmail.com>
+ * Copyright (C) 2014-2018, Sultanxda <sultanxda@gmail.com>
  *
  * Originally based off the MSM8x60 thermal implementation by:
  * Copyright (c) 2012, The Linux Foundation. All rights reserved.
@@ -392,7 +392,7 @@ static int sysfs_zone_attr_init(struct thermal_policy *t)
 	return 0;
 
 free_name:
-	for (i--; i >= 0; i--)
+	while (i--)
 		kfree(t->zfs.dev_attr[i].attr.name);
 	return -ENOMEM;
 }
