@@ -188,6 +188,8 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 			events_check_enabled = false;
 			dump_clk_enabled = false;
 #endif /* CONFIG_VENDOR_EDIT */
+		} else if (*wakeup) {
+			error = -EBUSY;
 		}
 		syscore_resume();
 	}
