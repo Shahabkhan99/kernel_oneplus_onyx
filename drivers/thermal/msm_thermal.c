@@ -67,7 +67,6 @@ static struct qpnp_vadc_chip *vadc_dev;
 static enum qpnp_vadc_channels adc_chan;
 
 static struct delayed_work check_temp_work;
-static struct workqueue_struct *thermal_wq;
 
 static void cpu_offline_wrapper(int cpu)
 {
@@ -180,7 +179,7 @@ static void check_temp(struct work_struct *work)
         }
 
 reschedule:
-        queue_delayed_work(thermal_wq, &check_temp_work, msecs_to_jiffies(200));
+        queue_delayed_work(system_power_efficient_wq, &check_temp_work, msecs_to_jiffies(200));
 }
 
 static int __devinit msm_thermal_dev_probe(struct platform_device *pdev)
@@ -197,13 +196,8 @@ static int __devinit msm_thermal_dev_probe(struct platform_device *pdev)
         ret = cpufreq_register_notifier(&msm_thermal_cpufreq_notifier,
                 CPUFREQ_POLICY_NOTIFIER);
 
-        thermal_wq = alloc_workqueue("thermal_wq", WQ_HIGHPRI, 0);
-        if (!thermal_wq) {
-                goto err;
-        }
-
         INIT_DELAYED_WORK(&check_temp_work, check_temp);
-        queue_delayed_work(thermal_wq, &check_temp_work, msecs_to_jiffies(200));
+        queue_delayed_work(system_power_efficient_wq, &check_temp_work, msecs_to_jiffies(200));
 
 err:
         return ret;
@@ -212,7 +206,6 @@ err:
 static int msm_thermal_dev_remove(struct platform_device *pdev)
 {
         cancel_delayed_work_sync(&check_temp_work);
-        destroy_workqueue(thermal_wq);
         cpufreq_unregister_notifier(&msm_thermal_cpufreq_notifier,
                         CPUFREQ_POLICY_NOTIFIER);
         return 0;
