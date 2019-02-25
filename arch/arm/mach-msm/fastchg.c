@@ -61,7 +61,7 @@ static ssize_t force_fast_charge_store(struct kobject *kobj, struct kobj_attribu
 }
 
 static struct kobj_attribute force_fast_charge_attribute =
-__ATTR(force_fast_charge, 0666, force_fast_charge_show, force_fast_charge_store);
+__ATTR(force_fast_charge, 0660, force_fast_charge_show, force_fast_charge_store);
 
 static struct attribute *force_fast_charge_attrs[] = {
 &force_fast_charge_attribute.attr,
